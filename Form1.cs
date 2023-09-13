@@ -37,7 +37,7 @@ namespace CarnaticMusicAutomaticNotation
         private bool bTrainingDone = true;
         private ITransformer model = null;
         private MLContext mlContext;
-        private int nAudioDevicesIndex = 1;
+        private int nAudioDevicesIndex = 0;
         private int nNotationRunning;
 
         public Form1()
