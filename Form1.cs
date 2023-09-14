@@ -386,7 +386,10 @@ namespace CarnaticMusicAutomaticNotation
 
         private void button4_Click(object sender, EventArgs e)
         {
-            Clipboard.SetText(textBox4.Text);
+            if (textBox4.Text != null)
+            {
+                Clipboard.SetText(textBox4.Text);
+            }
         }
 
         private void Tick2()
