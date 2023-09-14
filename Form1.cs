@@ -39,6 +39,13 @@ namespace CarnaticMusicAutomaticNotation
         private MLContext mlContext;
         private int nAudioDevicesIndex = 0;
         private int nNotationRunning;
+        private int fftSize = 4096;
+        private int targetWidthPx = 300;
+        private int maxFreq = 3000;
+        private int melBins = 25;
+        private bool bUseMel = false;
+        private double intensity = 5;
+        private Colormap colorMap = Colormap.Viridis;
 
         public Form1()
         {
@@ -200,10 +207,11 @@ namespace CarnaticMusicAutomaticNotation
                 {
                     var name = item.Key + "_" + i;
                     (double[] audio, int sampleRate) = ReadMono(strAssetsPath + "wav" + Path.DirectorySeparatorChar + name + ".wav");
-                    var sg = new SpectrogramGenerator(sampleRate, fftSize: 4096, stepSize: 500, maxFreq: 3000);
-                    sg.Colormap = Colormap.Viridis;
+                    int stepSize = audio.Length / targetWidthPx;
+                    var sg = new SpectrogramGenerator(sampleRate, fftSize: fftSize, stepSize: stepSize, maxFreq: maxFreq);
+                    sg.Colormap = colorMap;
                     sg.Add(audio);
-                    var bmp = sg.GetBitmapMel(melBinCount: 250);
+                    var bmp = bUseMel ? sg.GetBitmapMel(melBins, intensity: intensity) : sg.GetBitmap(intensity: intensity);
                     bmp.Save(strAssetsPath + "images" + Path.DirectorySeparatorChar + name + ".png", ImageFormat.Png);
                     if (i <= nHalf)
                     {
@@ -348,10 +356,11 @@ namespace CarnaticMusicAutomaticNotation
                     return;
                 }
                 (double[] audio, int sampleRate) = ReadMono(filePath);
-                var sg = new SpectrogramGenerator(sampleRate, fftSize: 4096, stepSize: 500, maxFreq: 3000);
-                sg.Colormap = Colormap.Viridis;
+                int stepSize = audio.Length / targetWidthPx;
+                var sg = new SpectrogramGenerator(sampleRate, fftSize: fftSize, stepSize: stepSize, maxFreq: maxFreq);
+                sg.Colormap = colorMap;
                 sg.Add(audio);
-                var bmp = sg.GetBitmapMel(melBinCount: 250);
+                var bmp = bUseMel ? sg.GetBitmapMel(melBins, intensity: intensity) : sg.GetBitmap(intensity: intensity);
                 bmp.Save(strAssetsPath + "wav1" + Path.DirectorySeparatorChar + i + ".png", ImageFormat.Png);
 
                 var imageData = new ImageData
