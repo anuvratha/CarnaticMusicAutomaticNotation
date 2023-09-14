@@ -63,6 +63,7 @@ namespace CarnaticMusicAutomaticNotation
             textBox1.Text += "Sri Padmavathi Mahila Viswavidyalayam\r\n";
             textBox1.Text += "anuvrathanarasimhan@gmail.com";
 
+            listBox1.Items.Add("_GAP_");
             listBox1.Items.Add("sa");
             listBox1.Items.Add("ri");
             listBox1.Items.Add("ga");
@@ -374,6 +375,10 @@ namespace CarnaticMusicAutomaticNotation
                 }
                 else
                 {
+                    if (prediction.PredictedLabelValue == "_GAP_")
+                    {
+                        prediction.PredictedLabelValue = " ";
+                    }
                     sbNotation.Append(prediction.PredictedLabelValue + " ");
                 }
             }
