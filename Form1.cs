@@ -39,13 +39,16 @@ namespace CarnaticMusicAutomaticNotation
         private MLContext mlContext;
         private int nAudioDevicesIndex = 0;
         private int nNotationRunning;
-        private int fftSize = 4096;
-        private int targetWidthPx = 300;
+        private int fftSize = 16384;
+        private int targetWidthPx = 3000;
         private int maxFreq = 3000;
-        private int melBins = 25;
+        private int melBins = 300;
         private bool bUseMel = false;
         private double intensity = 5;
         private Colormap colorMap = Colormap.Viridis;
+        private bool dB = true;
+        private bool bStaticStepSize = true;
+        private int nStepSize = 128;
 
         public Form1()
         {
@@ -103,12 +106,40 @@ namespace CarnaticMusicAutomaticNotation
             bIsFull = false;
             if (bIsTrainingMode)
             {
+                var waveFormat = AudioDevice.WaveFormat;
                 dctSwaraToRunning.TryGetValue(strSwara, out var nRunning);
                 nRunning++;
                 dctSwaraToRunning[strSwara] = nRunning;
-                using (var writer = new WaveFileWriter(strAssetsPath + "wav" + Path.DirectorySeparatorChar + strSwara + "_" + nRunning + ".wav", AudioDevice.WaveFormat))
+                using (var writer = new WaveFileWriter(strAssetsPath + "wav" + Path.DirectorySeparatorChar + strSwara + "_" + nRunning + ".wav", waveFormat))
                 {
                     writer.Write(buffer, 0, buffer.Length);
+                }
+                var semitone = (float)Math.Pow(2, 1.0 / 12);
+                var upOneTone = semitone * semitone;
+                var downOneTone = 1.0f / upOneTone;
+                for (int i = 1; i <= 2; i++)
+                {
+                    dctSwaraToRunning.TryGetValue(strSwara, out nRunning);
+                    nRunning++;
+                    dctSwaraToRunning[strSwara] = nRunning;
+                    var bufferedWaveProvider = new BufferedWaveProvider(waveFormat);
+                    bufferedWaveProvider.ReadFully = false;
+                    bufferedWaveProvider.AddSamples(buffer, 0, buffer.Length);
+                    var pitchProvider = new SmbPitchShiftingSampleProvider(bufferedWaveProvider.ToSampleProvider());
+                    pitchProvider.PitchFactor = i * upOneTone;
+                    WaveFileWriter.CreateWaveFile(strAssetsPath + "wav" + Path.DirectorySeparatorChar + strSwara + "_" + nRunning + ".wav", pitchProvider.ToWaveProvider());
+                }
+                for (int i = 1; i <= 2; i++)
+                {
+                    dctSwaraToRunning.TryGetValue(strSwara, out nRunning);
+                    nRunning++;
+                    dctSwaraToRunning[strSwara] = nRunning;
+                    var bufferedWaveProvider = new BufferedWaveProvider(waveFormat);
+                    bufferedWaveProvider.ReadFully = false;
+                    bufferedWaveProvider.AddSamples(buffer, 0, buffer.Length);
+                    var pitchProvider = new SmbPitchShiftingSampleProvider(bufferedWaveProvider.ToSampleProvider());
+                    pitchProvider.PitchFactor = i * downOneTone;
+                    WaveFileWriter.CreateWaveFile(strAssetsPath + "wav" + Path.DirectorySeparatorChar + strSwara + "_" + nRunning + ".wav", pitchProvider.ToWaveProvider());
                 }
             }
             else
@@ -204,25 +235,31 @@ namespace CarnaticMusicAutomaticNotation
             foreach (var item in dctSwaraToRunning)
             {
                 int nHalf = (int)(item.Value / 2);
-                for (int i = 1; i < item.Value; i++)
+                Parallel.For(1, item.Value, i =>
                 {
                     var name = item.Key + "_" + i;
                     (double[] audio, int sampleRate) = ReadMono(strAssetsPath + "wav" + Path.DirectorySeparatorChar + name + ".wav");
-                    int stepSize = audio.Length / targetWidthPx;
+                    int stepSize = bStaticStepSize ? nStepSize : audio.Length / targetWidthPx;
                     var sg = new SpectrogramGenerator(sampleRate, fftSize: fftSize, stepSize: stepSize, maxFreq: maxFreq);
                     sg.Colormap = colorMap;
                     sg.Add(audio);
-                    var bmp = bUseMel ? sg.GetBitmapMel(melBins, intensity: intensity) : sg.GetBitmap(intensity: intensity);
+                    var bmp = bUseMel ? sg.GetBitmapMel(melBins, intensity: intensity, dB: dB) : sg.GetBitmap(intensity: intensity, dB: dB);
                     bmp.Save(strAssetsPath + "images" + Path.DirectorySeparatorChar + name + ".png", ImageFormat.Png);
                     if (i <= nHalf)
                     {
-                        sbData1.AppendLine(name + ".png\t" + item.Key);
+                        lock (sbData1)
+                        {
+                            sbData1.AppendLine(name + ".png\t" + item.Key);
+                        }
                     }
                     else
                     {
-                        sbData2.AppendLine(name + ".png\t" + item.Key);
+                        lock (sbData2)
+                        {
+                            sbData2.AppendLine(name + ".png\t" + item.Key);
+                        }
                     }
-                }
+                });
             }
             dctSwaraToRunning.Clear();
             File.WriteAllText(strAssetsPath + "images" + Path.DirectorySeparatorChar + "tags.tsv", sbData1.ToString());
@@ -287,7 +324,7 @@ namespace CarnaticMusicAutomaticNotation
             listBox2.Items.Clear();
             if (dctSwaraToRunning.TryGetValue(strSwara, out var nRunning))
             {
-                for (int i = 1; i < nRunning; i++)
+                for (int i = 1; i <= nRunning; i++)
                 {
                     listBox2.Items.Add(strSwara + "_" + i);
                 }
@@ -347,21 +384,22 @@ namespace CarnaticMusicAutomaticNotation
 
         private void Notate()
         {
-            var sbNotation = new StringBuilder(5000);
             var predictor = mlContext.Model.CreatePredictionEngine<ImageData, ImagePrediction>(model);
-            for (int i = 1; i < nNotationRunning; i++)
+            var arrNotations = new string[nNotationRunning];
+            Parallel.For(1, nNotationRunning, i =>
             {
                 var filePath = strAssetsPath + "wav1" + Path.DirectorySeparatorChar + i + ".wav";
                 if (!File.Exists(filePath))
                 {
+                    arrNotations[i] = "";
                     return;
                 }
                 (double[] audio, int sampleRate) = ReadMono(filePath);
-                int stepSize = audio.Length / targetWidthPx;
+                int stepSize = bStaticStepSize ? nStepSize : audio.Length / targetWidthPx;
                 var sg = new SpectrogramGenerator(sampleRate, fftSize: fftSize, stepSize: stepSize, maxFreq: maxFreq);
                 sg.Colormap = colorMap;
                 sg.Add(audio);
-                var bmp = bUseMel ? sg.GetBitmapMel(melBins, intensity: intensity) : sg.GetBitmap(intensity: intensity);
+                var bmp = bUseMel ? sg.GetBitmapMel(melBins, intensity: intensity, dB: dB) : sg.GetBitmap(intensity: intensity, dB: dB);
                 bmp.Save(strAssetsPath + "wav1" + Path.DirectorySeparatorChar + i + ".png", ImageFormat.Png);
 
                 var imageData = new ImageData
@@ -371,18 +409,18 @@ namespace CarnaticMusicAutomaticNotation
                 var prediction = predictor.Predict(imageData);
                 if (prediction == null || string.IsNullOrEmpty(prediction.PredictedLabelValue))
                 {
-                    sbNotation.Append(" ");
+                    arrNotations[i] = "";
                 }
                 else
                 {
                     if (prediction.PredictedLabelValue == "_GAP_")
                     {
-                        prediction.PredictedLabelValue = " ";
+                        prediction.PredictedLabelValue = "";
                     }
-                    sbNotation.Append(prediction.PredictedLabelValue + " ");
+                    arrNotations[i] = prediction.PredictedLabelValue;
                 }
-            }
-            textBox4.Text = sbNotation.ToString();
+            });
+            textBox4.Text = string.Join(" ", arrNotations);
         }
 
         private void Tick1()
