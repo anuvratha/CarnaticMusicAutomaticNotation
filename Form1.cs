@@ -49,6 +49,7 @@ namespace CarnaticMusicAutomaticNotation
         private bool dB = true;
         private bool bStaticStepSize = true;
         private int nStepSize = 128;
+        private bool bSimulateData = false;
 
         public Form1()
         {
@@ -114,32 +115,35 @@ namespace CarnaticMusicAutomaticNotation
                 {
                     writer.Write(buffer, 0, buffer.Length);
                 }
-                var semitone = (float)Math.Pow(2, 1.0 / 12);
-                var upOneTone = semitone * semitone;
-                var downOneTone = 1.0f / upOneTone;
-                for (int i = 1; i <= 2; i++)
+                if (bSimulateData)
                 {
-                    dctSwaraToRunning.TryGetValue(strSwara, out nRunning);
-                    nRunning++;
-                    dctSwaraToRunning[strSwara] = nRunning;
-                    var bufferedWaveProvider = new BufferedWaveProvider(waveFormat);
-                    bufferedWaveProvider.ReadFully = false;
-                    bufferedWaveProvider.AddSamples(buffer, 0, buffer.Length);
-                    var pitchProvider = new SmbPitchShiftingSampleProvider(bufferedWaveProvider.ToSampleProvider());
-                    pitchProvider.PitchFactor = i * upOneTone;
-                    WaveFileWriter.CreateWaveFile(strAssetsPath + "wav" + Path.DirectorySeparatorChar + strSwara + "_" + nRunning + ".wav", pitchProvider.ToWaveProvider());
-                }
-                for (int i = 1; i <= 2; i++)
-                {
-                    dctSwaraToRunning.TryGetValue(strSwara, out nRunning);
-                    nRunning++;
-                    dctSwaraToRunning[strSwara] = nRunning;
-                    var bufferedWaveProvider = new BufferedWaveProvider(waveFormat);
-                    bufferedWaveProvider.ReadFully = false;
-                    bufferedWaveProvider.AddSamples(buffer, 0, buffer.Length);
-                    var pitchProvider = new SmbPitchShiftingSampleProvider(bufferedWaveProvider.ToSampleProvider());
-                    pitchProvider.PitchFactor = i * downOneTone;
-                    WaveFileWriter.CreateWaveFile(strAssetsPath + "wav" + Path.DirectorySeparatorChar + strSwara + "_" + nRunning + ".wav", pitchProvider.ToWaveProvider());
+                    var semitone = (float)Math.Pow(2, 1.0 / 12);
+                    var upOneTone = semitone * semitone;
+                    var downOneTone = 1.0f / upOneTone;
+                    for (int i = 1; i <= 2; i++)
+                    {
+                        dctSwaraToRunning.TryGetValue(strSwara, out nRunning);
+                        nRunning++;
+                        dctSwaraToRunning[strSwara] = nRunning;
+                        var bufferedWaveProvider = new BufferedWaveProvider(waveFormat);
+                        bufferedWaveProvider.ReadFully = false;
+                        bufferedWaveProvider.AddSamples(buffer, 0, buffer.Length);
+                        var pitchProvider = new SmbPitchShiftingSampleProvider(bufferedWaveProvider.ToSampleProvider());
+                        pitchProvider.PitchFactor = i * upOneTone;
+                        WaveFileWriter.CreateWaveFile(strAssetsPath + "wav" + Path.DirectorySeparatorChar + strSwara + "_" + nRunning + ".wav", pitchProvider.ToWaveProvider());
+                    }
+                    for (int i = 1; i <= 2; i++)
+                    {
+                        dctSwaraToRunning.TryGetValue(strSwara, out nRunning);
+                        nRunning++;
+                        dctSwaraToRunning[strSwara] = nRunning;
+                        var bufferedWaveProvider = new BufferedWaveProvider(waveFormat);
+                        bufferedWaveProvider.ReadFully = false;
+                        bufferedWaveProvider.AddSamples(buffer, 0, buffer.Length);
+                        var pitchProvider = new SmbPitchShiftingSampleProvider(bufferedWaveProvider.ToSampleProvider());
+                        pitchProvider.PitchFactor = i * downOneTone;
+                        WaveFileWriter.CreateWaveFile(strAssetsPath + "wav" + Path.DirectorySeparatorChar + strSwara + "_" + nRunning + ".wav", pitchProvider.ToWaveProvider());
+                    }
                 }
             }
             else
@@ -166,6 +170,7 @@ namespace CarnaticMusicAutomaticNotation
                     bTrainingDone = false;
                 }
                 button1.Text = "Stop";
+                bSimulateData = checkBox1.Checked;
                 dRecordTimeS = double.Parse(textBox2.Text);
                 int nInterval = (int)(dRecordTimeS * 1000);
                 timer = new Timer();

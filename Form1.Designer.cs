@@ -40,13 +40,14 @@
             this.button1 = new System.Windows.Forms.Button();
             this.listBox1 = new System.Windows.Forms.ListBox();
             this.tabPage2 = new System.Windows.Forms.TabPage();
+            this.button4 = new System.Windows.Forms.Button();
             this.label5 = new System.Windows.Forms.Label();
             this.label4 = new System.Windows.Forms.Label();
             this.textBox4 = new System.Windows.Forms.TextBox();
             this.button3 = new System.Windows.Forms.Button();
             this.tabPage3 = new System.Windows.Forms.TabPage();
             this.textBox1 = new System.Windows.Forms.TextBox();
-            this.button4 = new System.Windows.Forms.Button();
+            this.checkBox1 = new System.Windows.Forms.CheckBox();
             this.tabControl1.SuspendLayout();
             this.tabPage1.SuspendLayout();
             this.tabPage2.SuspendLayout();
@@ -68,6 +69,7 @@
             // tabPage1
             // 
             this.tabPage1.BackColor = System.Drawing.SystemColors.Control;
+            this.tabPage1.Controls.Add(this.checkBox1);
             this.tabPage1.Controls.Add(this.listBox2);
             this.tabPage1.Controls.Add(this.textBox3);
             this.tabPage1.Controls.Add(this.button2);
@@ -184,6 +186,16 @@
             this.tabPage2.TabIndex = 2;
             this.tabPage2.Text = "Notate";
             // 
+            // button4
+            // 
+            this.button4.Location = new System.Drawing.Point(569, 115);
+            this.button4.Name = "button4";
+            this.button4.Size = new System.Drawing.Size(83, 32);
+            this.button4.TabIndex = 4;
+            this.button4.Text = "Copy";
+            this.button4.UseVisualStyleBackColor = true;
+            this.button4.Click += new System.EventHandler(this.button4_Click);
+            // 
             // label5
             // 
             this.label5.AutoSize = true;
@@ -243,15 +255,15 @@
             this.textBox1.Size = new System.Drawing.Size(658, 543);
             this.textBox1.TabIndex = 0;
             // 
-            // button4
+            // checkBox1
             // 
-            this.button4.Location = new System.Drawing.Point(569, 115);
-            this.button4.Name = "button4";
-            this.button4.Size = new System.Drawing.Size(83, 32);
-            this.button4.TabIndex = 4;
-            this.button4.Text = "Copy";
-            this.button4.UseVisualStyleBackColor = true;
-            this.button4.Click += new System.EventHandler(this.button4_Click);
+            this.checkBox1.AutoSize = true;
+            this.checkBox1.Location = new System.Drawing.Point(280, 219);
+            this.checkBox1.Name = "checkBox1";
+            this.checkBox1.Size = new System.Drawing.Size(97, 24);
+            this.checkBox1.TabIndex = 10;
+            this.checkBox1.Text = "Simulate";
+            this.checkBox1.UseVisualStyleBackColor = true;
             // 
             // Form1
             // 
@@ -297,6 +309,7 @@
         private System.Windows.Forms.Label label5;
         private System.Windows.Forms.Label label4;
         private System.Windows.Forms.Button button4;
+        private System.Windows.Forms.CheckBox checkBox1;
     }
 }
 
