@@ -24,7 +24,7 @@ namespace CarnaticMusicAutomaticNotation
     public partial class Form1 : Form
     {
         private string strPath;
-        private string strModelPath, strAssetsPath, strTensorFlowModelPath;
+        private string strAssetsPath, strTensorFlowModelPath;
         private WasapiCapture AudioDevice;
         private MMDevice[] AudioDevices;
         private double dRecordTimeS;
@@ -57,7 +57,6 @@ namespace CarnaticMusicAutomaticNotation
         public Form1()
         {
             strPath = new FileInfo(System.Reflection.Assembly.GetEntryAssembly().Location).DirectoryName + Path.DirectorySeparatorChar;
-            strModelPath = strPath + "model" + Path.DirectorySeparatorChar;
             strAssetsPath = strPath + "assets" + Path.DirectorySeparatorChar;
             strTensorFlowModelPath = strPath + "assets" + Path.DirectorySeparatorChar + "inception" + Path.DirectorySeparatorChar + "tensorflow_inception_graph.pb";
             InitializeComponent();
