@@ -9,6 +9,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Windows.Forms.DataVisualization.Charting;
 
 using Microsoft.ML;
 using Microsoft.ML.Data;
@@ -16,6 +17,7 @@ using NAudio.CoreAudioApi;
 using NAudio.Wave;
 using NAudio.Wave.SampleProviders;
 using Spectrogram;
+using static Tensorflow.Summary.Types;
 
 namespace CarnaticMusicAutomaticNotation
 {
@@ -50,6 +52,7 @@ namespace CarnaticMusicAutomaticNotation
         private bool bStaticStepSize = true;
         private int nStepSize = 128;
         private bool bSimulateData = false;
+        private bool bUseChart = false;
 
         public Form1()
         {
@@ -233,6 +236,40 @@ namespace CarnaticMusicAutomaticNotation
             }
         }
 
+        private Bitmap GetImage(double[] audio, int sampleRate)
+        {
+            if (bUseChart)
+            {
+                var chart = new Chart();
+                chart.Series.Add("wave");
+                var chartArea = new ChartArea();
+                chartArea.AxisX.LabelStyle.Enabled = false;
+                chartArea.AxisY.LabelStyle.Enabled = false;
+                chartArea.AxisX.MajorGrid.Enabled = false;
+                chartArea.AxisY.MajorGrid.Enabled = false;
+                chart.ChartAreas.Add(chartArea);
+                chart.Series["wave"].ChartType = SeriesChartType.FastLine;
+                for (int i = 0; i < audio.Length; i++)
+                {
+                    chart.Series["wave"].Points.AddXY(i, audio[i]);
+                }
+                chart.ChartAreas[0].RecalculateAxesScale();
+                using (var ms = new MemoryStream())
+                {
+                    chart.SaveImage(ms, ChartImageFormat.Png);
+                    return new Bitmap(ms);
+                }
+            }
+            else
+            {
+                int stepSize = bStaticStepSize ? nStepSize : audio.Length / targetWidthPx;
+                var sg = new SpectrogramGenerator(sampleRate, fftSize: fftSize, stepSize: stepSize, maxFreq: maxFreq);
+                sg.Colormap = colorMap;
+                sg.Add(audio);
+                return bUseMel ? sg.GetBitmapMel(melBins, intensity: intensity, dB: dB) : sg.GetBitmap(intensity: intensity, dB: dB);
+            }
+        }
+
         private void button2_Click(object sender, EventArgs e)
         {
             var sbData1 = new StringBuilder(5000);
@@ -244,11 +281,7 @@ namespace CarnaticMusicAutomaticNotation
                 {
                     var name = item.Key + "_" + i;
                     (double[] audio, int sampleRate) = ReadMono(strAssetsPath + "wav" + Path.DirectorySeparatorChar + name + ".wav");
-                    int stepSize = bStaticStepSize ? nStepSize : audio.Length / targetWidthPx;
-                    var sg = new SpectrogramGenerator(sampleRate, fftSize: fftSize, stepSize: stepSize, maxFreq: maxFreq);
-                    sg.Colormap = colorMap;
-                    sg.Add(audio);
-                    var bmp = bUseMel ? sg.GetBitmapMel(melBins, intensity: intensity, dB: dB) : sg.GetBitmap(intensity: intensity, dB: dB);
+                    var bmp = GetImage(audio, sampleRate);
                     bmp.Save(strAssetsPath + "images" + Path.DirectorySeparatorChar + name + ".png", ImageFormat.Png);
                     if (i <= nHalf)
                     {
@@ -400,13 +433,8 @@ namespace CarnaticMusicAutomaticNotation
                     return;
                 }
                 (double[] audio, int sampleRate) = ReadMono(filePath);
-                int stepSize = bStaticStepSize ? nStepSize : audio.Length / targetWidthPx;
-                var sg = new SpectrogramGenerator(sampleRate, fftSize: fftSize, stepSize: stepSize, maxFreq: maxFreq);
-                sg.Colormap = colorMap;
-                sg.Add(audio);
-                var bmp = bUseMel ? sg.GetBitmapMel(melBins, intensity: intensity, dB: dB) : sg.GetBitmap(intensity: intensity, dB: dB);
+                var bmp = GetImage(audio, sampleRate);
                 bmp.Save(strAssetsPath + "wav1" + Path.DirectorySeparatorChar + i + ".png", ImageFormat.Png);
-
                 var imageData = new ImageData
                 {
                     ImagePath = strAssetsPath + "wav1" + Path.DirectorySeparatorChar + i + ".png"
